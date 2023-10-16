@@ -11,15 +11,12 @@ def runner():
     requests_q = 'uppercase-requests'
 
     def handle_job(request):
-        print('-' * 100)
-        print(request)
         return {'reply': str.upper(request['request'])}
 
     while True:
         try:
             rmq.start_rabbitmq_processor(
                 requests_q,
-                ##replies_q,
                 '127.0.0.1',
                 'user',
                 'password',
@@ -51,7 +48,6 @@ if __name__ == "__main__":
                 )
 
         utils.log("Exhausted retry count of %s times." % max_retries)
-
 
     for f in [run_rmq]:
         threading.Thread(target=f).start()

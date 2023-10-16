@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import json
+import os
+
 import pika
 import utils
 
@@ -24,9 +26,7 @@ def start_rabbitmq_processor(
     utils.log('setting heartbeat=0')
 
     if rabbit_vhost is None:
-
         utils.log('vhost is None')
-
         params = pika.ConnectionParameters(
             host=rabbit_host,
             credentials=pika.PlainCredentials(rabbit_username, rabbit_password),
@@ -42,12 +42,8 @@ def start_rabbitmq_processor(
         )
 
     def debug_message(body, properties):
-        s = f"""
-        {properties}
-        processing new request:
-        {body}
-        """
-        utils.log(s)
+        debug_message = os.linesep.join([str(a) for a in [os.linesep, '-' * 50, properties, body, os.linesep]])
+        utils.log(debug_message)
 
     with pika.BlockingConnection(params) as connection:
         with connection.channel() as channel:
@@ -59,6 +55,8 @@ def start_rabbitmq_processor(
                 result = process_job_requests_fn(object_request)
                 json_response = json.dumps(result)
                 try:
+                    import time
+                    time.sleep(10)
                     channel.basic_publish(
                         '',
                         replies_q,  # properties.routing_key,
@@ -69,11 +67,6 @@ def start_rabbitmq_processor(
                             delivery_mode=1
                         )
                     )
-                except:
-                    print('there was an error')
-                    pass
-
-                try:
                     channel.basic_ack(method_frame.delivery_tag)
                 except:
                     print('there was an error')

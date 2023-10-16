@@ -1,5 +1,7 @@
 package client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.*;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.boot.ApplicationRunner;
@@ -31,19 +33,6 @@ public class ClientApplication {
 
     private final String requests = "uppercase-requests";
 
-    private final GenericHandler<Object> loggingHandler = (payload, headers) -> {
-        System.out.println(new StringBuilder().repeat("-", 50));
-        System.out.println(payload);
-        for (var h : headers.keySet())
-            System.out.println('\t' + h + '=' + headers.get(h));
-        return payload;
-    };
-
-    private final GenericHandler<Object> terminatingLoggingHandler = (p, h) -> {
-        this.loggingHandler.handle(p, h);
-        return null;
-    };
-
     @Bean
     DirectChannelSpec inbound() {
         return MessageChannels.direct();
@@ -55,7 +44,7 @@ public class ClientApplication {
     }
 
     @Bean
-    IntegrationFlow outboundAmqpIntegrationFlow(AmqpTemplate amqpTemplate) {
+    IntegrationFlow outboundAmqpIntegrationFlow(ObjectMapper objectMapper, AmqpTemplate amqpTemplate) {
         return IntegrationFlow
                 .from(outbound())
                 .transform((GenericTransformer<String, Map<String, String>>) source -> Map.of("request", source))
@@ -64,6 +53,14 @@ public class ClientApplication {
                         .routingKey(this.requests)
                         .exchangeName(this.requests)
                 )
+                .transform((GenericTransformer<String, UppercaseReply>) source -> {
+                    try {
+                        return objectMapper.readValue(source, UppercaseReply.class);
+                    }//
+                    catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
                 .channel(inbound())
                 .get();
     }
@@ -71,9 +68,8 @@ public class ClientApplication {
     @Bean
     ApplicationRunner starter(UppercaseClient uppercaseClient) {
         return args -> {
-            System.out.println(uppercaseClient.uppercase("hi, world"));
-            System.out.println(uppercaseClient.uppercase("moo"));
-
+            System.out.println(uppercaseClient.uppercase("all around the world"));
+            System.out.println(uppercaseClient.uppercase("meow"));
         };
     }
 
@@ -81,7 +77,10 @@ public class ClientApplication {
     public interface UppercaseClient {
 
         @Gateway(requestChannel = "outbound", replyChannel = "inbound")
-        String uppercase(@Payload String input);
+        UppercaseReply uppercase(@Payload String input);
+    }
+
+    public record UppercaseReply(String reply) {
     }
 
     @Bean
