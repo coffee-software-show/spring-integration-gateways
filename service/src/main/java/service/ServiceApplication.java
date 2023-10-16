@@ -24,25 +24,18 @@ public class ServiceApplication {
 
     private final String requests = "uppercase-requests";
 
-    private final String replies = "uppercase-replies";
-
     @Bean
     IntegrationFlow requestsIntegrationFlow(ConnectionFactory connectionFactory) {
         return IntegrationFlow
-                .from(Amqp.inboundGateway(connectionFactory, this.requests).defaultReplyTo(this.replies))
-                .handle( this.loggingHandler)
-                .handle((GenericHandler<String>) (payload, headers) -> {
-                    var reply = payload.toUpperCase();
-                    System.out.println(reply);
-                    return reply;
-                })
+                .from(Amqp.inboundGateway(connectionFactory, this.requests))
+                .handle((GenericHandler<String>) (payload, headers) -> payload.toUpperCase())
                 .get();
     }
 
     @Bean
     InitializingBean queueRegistrar(AmqpAdmin admin) {
         return () -> {
-            for (var name : Set.of(this.requests, this.replies)) {
+            for (var name : Set.of(this.requests)) {
                 var q = QueueBuilder.durable(name).build();
                 var e = ExchangeBuilder.directExchange(name).build();
                 admin.declareQueue(q);
@@ -51,7 +44,6 @@ public class ServiceApplication {
             }
         };
     }
-
 
     private final GenericHandler<Object> loggingHandler = (payload, headers) -> {
         System.out.println(new StringBuilder().repeat("-", 50));
