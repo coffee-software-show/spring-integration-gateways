@@ -18,10 +18,12 @@ import org.springframework.integration.dsl.DirectChannelSpec;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.MessageChannels;
 import org.springframework.integration.json.ObjectToJsonTransformer;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.Payload;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
 @IntegrationComponentScan
 @SpringBootApplication
@@ -76,7 +78,7 @@ public class ClientApplication {
     @MessagingGateway
     public interface UppercaseClient {
 
-        @Gateway(requestChannel = "outbound", replyChannel = "inbound")
+        @Gateway(requestChannel = "outbound", replyChannel = "inbound"  )
         UppercaseReply uppercase(@Payload String input);
     }
 

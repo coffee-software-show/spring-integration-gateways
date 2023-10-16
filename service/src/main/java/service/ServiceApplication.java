@@ -44,18 +44,4 @@ public class ServiceApplication {
             }
         };
     }
-
-    private final GenericHandler<Object> loggingHandler = (payload, headers) -> {
-        System.out.println(new StringBuilder().repeat("-", 50));
-        System.out.println(payload);
-        for (var h : headers.keySet())
-            System.out.println('\t' + h + '=' + headers.get(h));
-        return payload;
-    };
-
-    private final GenericHandler<Object> terminatingLoggingHandler = (p, h) -> {
-        this.loggingHandler.handle(p, h);
-        return null;
-    };
-
 }
