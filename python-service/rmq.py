@@ -41,28 +41,39 @@ def start_rabbitmq_processor(
             heartbeat=0
         )
 
+    def debug_message(body, properties):
+        s = f"""
+        {properties}
+        processing new request:
+        {body}
+        """
+        utils.log(s)
+
     with pika.BlockingConnection(params) as connection:
         with connection.channel() as channel:
             utils.log("connected.")
             for method_frame, properties, body in channel.consume(requests_q):
-                # this is the reply queue
-                # created by the Spring Integration gateway client
+                debug_message(body, properties)
                 replies_q = properties.reply_to
-                utils.log('-' * 100)
-                utils.log(properties)
-                utils.log(dir(properties))
-                utils.log("processing new request:")
-                utils.log(body)
                 object_request = json.loads(body)
                 result = process_job_requests_fn(object_request)
                 json_response = json.dumps(result)
-                utils.log(
-                    f"sending json_response {json_response} to replies queue {replies_q} with the following replies."
-                )
-                channel.basic_publish(
-                    replies_q,
-                    replies_q,
-                    json_response,
-                    pika.BasicProperties(content_type="text/plain", delivery_mode=1),
-                )
-                channel.basic_ack(method_frame.delivery_tag)
+                try:
+                    channel.basic_publish(
+                        '',
+                        replies_q,  # properties.routing_key,
+                        json_response,
+                        pika.BasicProperties(
+                            correlation_id=properties.correlation_id,
+                            content_type="text/plain",
+                            delivery_mode=1
+                        )
+                    )
+                except:
+                    print('there was an error')
+                    pass
+
+                try:
+                    channel.basic_ack(method_frame.delivery_tag)
+                except:
+                    print('there was an error')

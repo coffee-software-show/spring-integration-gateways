@@ -11,6 +11,7 @@ def runner():
     requests_q = 'uppercase-requests'
 
     def handle_job(request):
+        print('-' * 100)
         print(request)
         return {'reply': str.upper(request['request'])}
 
@@ -44,15 +45,15 @@ if __name__ == "__main__":
                 utils.log("launching RabbitMQ background thread")
                 runner()
             except Exception as e:
-                exception(
+                utils.exception(
                     e,
                     message="something went wrong trying to start the RabbitMQ processing thread!",
                 )
 
-        log("Exhausted retry count of %s times." % max_retries)
+        utils.log("Exhausted retry count of %s times." % max_retries)
 
 
     for f in [run_rmq]:
         threading.Thread(target=f).start()
 
-    log("launched RabbitMQ and Flask threads.")
+    utils.log("launched RabbitMQ and Flask threads.")
