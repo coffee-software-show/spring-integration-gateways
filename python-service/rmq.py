@@ -55,8 +55,9 @@ def start_rabbitmq_processor(
                 result = process_job_requests_fn(object_request)
                 json_response = json.dumps(result)
                 try:
-                    import time
-                    time.sleep(10)
+                    #import time
+                    #time.sleep(10) # sleeps 10s
+
                     channel.basic_publish(
                         '',
                         replies_q,  # properties.routing_key,

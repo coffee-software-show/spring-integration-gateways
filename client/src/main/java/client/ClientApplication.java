@@ -12,18 +12,16 @@ import org.springframework.integration.amqp.dsl.Amqp;
 import org.springframework.integration.annotation.Gateway;
 import org.springframework.integration.annotation.IntegrationComponentScan;
 import org.springframework.integration.annotation.MessagingGateway;
-import org.springframework.integration.core.GenericHandler;
 import org.springframework.integration.core.GenericTransformer;
 import org.springframework.integration.dsl.DirectChannelSpec;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.MessageChannels;
 import org.springframework.integration.json.ObjectToJsonTransformer;
-import org.springframework.messaging.Message;
 import org.springframework.messaging.handler.annotation.Payload;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.concurrent.Executors;
 
 @IntegrationComponentScan
 @SpringBootApplication
@@ -70,15 +68,29 @@ public class ClientApplication {
     @Bean
     ApplicationRunner starter(UppercaseClient uppercaseClient) {
         return args -> {
-            System.out.println(uppercaseClient.uppercase("all around the world"));
-            System.out.println(uppercaseClient.uppercase("meow"));
+
+            record UppercasingRunnable(UppercaseClient uppercaseClient, String message) implements Runnable {
+                @Override
+                public void run() {
+                    var string = Thread.currentThread().toString() + System.lineSeparator() +
+                                uppercaseClient.uppercase(message)  + System.lineSeparator() +
+                                Thread.currentThread();
+                    System.out.println(string);
+
+                }
+            }
+
+            var es = Executors.newVirtualThreadPerTaskExecutor();
+            for (var i = 0; i < 100; i++)
+                for (var message : "hello world,meow,moo,woof".split(","))
+                    es.submit(new UppercasingRunnable(uppercaseClient, message));
         };
     }
 
     @MessagingGateway
     public interface UppercaseClient {
 
-        @Gateway(requestChannel = "outbound", replyChannel = "inbound"  )
+        @Gateway(requestChannel = "outbound", replyChannel = "inbound")
         UppercaseReply uppercase(@Payload String input);
     }
 
