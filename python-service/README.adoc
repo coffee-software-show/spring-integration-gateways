@@ -1,0 +1,30 @@
+= Processor
+
+image::https://github.com/bootiful-podcast/processor-v2/workflows/Deploy/badge.svg[Status]
+
+
+== Description
+
+This module processes media files and turns them into the final, composite audio file. This module is written in Python and uses RabbitMQ and Amazon S3.
+
+== Technical Notes
+
+
+You can run the program by calling `main.py` using Python 3.8 or later.
+
+You can run the Docker image assuming you've got a valid RabbitMQ instance running on your host machine.
+
+You could also use this script to have Kubernetes [port-forward the remote, in-cluster, instance on to your local machine](https://github.com/bootiful-podcast/deployment/blob/main/proxy_bp_rabbitmq.sh).
+
+```shell
+
+docker run \
+ -e PODCAST_RMQ_ADDRESS=amqp://bp-rmq:bp-rmq@host.docker.internal/ \
+ -e AWS_REGION=us-east-1 \
+ -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+ -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+ audio-processor
+
+
+```
+
