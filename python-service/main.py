@@ -42,12 +42,10 @@ if __name__ == "__main__":
                 utils.log("launching RabbitMQ background thread")
                 runner()
             except Exception as e:
-                utils.exception(
-                    e,
-                    message="something went wrong trying to start the RabbitMQ processing thread!",
-                )
+                utils.exception(e, message="something went wrong trying to start the RabbitMQ processing thread!")
 
         utils.log("Exhausted retry count of %s times." % max_retries)
+
 
     for f in [run_rmq]:
         threading.Thread(target=f).start()

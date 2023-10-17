@@ -3,7 +3,9 @@ package client;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.*;
+import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -17,6 +19,7 @@ import org.springframework.integration.dsl.DirectChannelSpec;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.MessageChannels;
 import org.springframework.integration.json.ObjectToJsonTransformer;
+import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.handler.annotation.Payload;
 
 import java.util.Map;
@@ -24,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 
 @IntegrationComponentScan
+@RegisterReflectionForBinding (ClientApplication.UppercaseReply.class)
 @SpringBootApplication
 public class ClientApplication {
 
@@ -33,20 +37,20 @@ public class ClientApplication {
 
     private final String requests = "uppercase-requests";
 
-    @Bean
+    @Bean("inbound")
     DirectChannelSpec inbound() {
         return MessageChannels.direct();
     }
 
-    @Bean
+    @Bean("outbound")
     DirectChannelSpec outbound() {
         return MessageChannels.direct();
     }
 
     @Bean
-    IntegrationFlow outboundAmqpIntegrationFlow(ObjectMapper objectMapper, AmqpTemplate amqpTemplate) {
+    IntegrationFlow outboundAmqpIntegrationFlow(@Qualifier("outbound") MessageChannel outbound, @Qualifier("inbound") MessageChannel inbound, ObjectMapper objectMapper, AmqpTemplate amqpTemplate) {
         return IntegrationFlow
-                .from(outbound())
+                .from(outbound)
                 .transform((GenericTransformer<String, Map<String, String>>) source -> Map.of("request", source))
                 .transform(new ObjectToJsonTransformer())
                 .handle(Amqp.outboundGateway(amqpTemplate)
@@ -61,7 +65,7 @@ public class ClientApplication {
                         throw new RuntimeException(e);
                     }
                 })
-                .channel(inbound())
+                .channel(inbound)
                 .get();
     }
 
@@ -72,11 +76,7 @@ public class ClientApplication {
             record UppercasingRunnable(UppercaseClient uppercaseClient, String message) implements Runnable {
                 @Override
                 public void run() {
-                    var string = Thread.currentThread().toString() + System.lineSeparator() +
-                                uppercaseClient.uppercase(message)  + System.lineSeparator() +
-                                Thread.currentThread();
-                    System.out.println(string);
-
+                    System.out.println(uppercaseClient.uppercase(message));
                 }
             }
 
