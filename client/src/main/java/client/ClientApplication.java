@@ -47,14 +47,20 @@ public class ClientApplication {
     }
 
     @Bean
-    IntegrationFlow outboundAmqpIntegrationFlow(MessageChannel outbound, MessageChannel inbound, ObjectMapper objectMapper, AmqpTemplate amqpTemplate) {
+    IntegrationFlow outboundAmqpIntegrationFlow(
+            MessageChannel outbound,
+            MessageChannel inbound,
+            ObjectMapper objectMapper,
+            AmqpTemplate amqpTemplate) {
+        var q = this.requests;
         return IntegrationFlow
                 .from(outbound)
                 .transform((GenericTransformer<String, Map<String, String>>) source -> Map.of("request", source))
                 .transform(new ObjectToJsonTransformer())
-                .handle(Amqp.outboundGateway(amqpTemplate)
-                        .routingKey(this.requests)
-                        .exchangeName(this.requests)
+                .handle(Amqp
+                        .outboundGateway(amqpTemplate)//
+                        .routingKey(q)//
+                        .exchangeName(q)//
                 )
                 .transform((GenericTransformer<String, UppercaseReply>) source -> {
                     try {
@@ -72,7 +78,9 @@ public class ClientApplication {
     ApplicationRunner starter(UppercaseClient uppercaseClient) {
         return args -> {
 
-            record UppercasingRunnable(UppercaseClient uppercaseClient, String message) implements Runnable {
+            record UppercasingRunnable(UppercaseClient uppercaseClient, String message)
+                    implements Runnable {
+
                 @Override
                 public void run() {
                     System.out.println(uppercaseClient.uppercase(message));
