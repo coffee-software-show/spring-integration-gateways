@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.*;
 import org.springframework.aot.hint.annotation.RegisterReflectionForBinding;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -27,7 +26,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 
 @IntegrationComponentScan
-@RegisterReflectionForBinding (ClientApplication.UppercaseReply.class)
+@RegisterReflectionForBinding(ClientApplication.UppercaseReply.class)
 @SpringBootApplication
 public class ClientApplication {
 
@@ -37,18 +36,18 @@ public class ClientApplication {
 
     private final String requests = "uppercase-requests";
 
-    @Bean("inbound")
+    @Bean
     DirectChannelSpec inbound() {
         return MessageChannels.direct();
     }
 
-    @Bean("outbound")
+    @Bean
     DirectChannelSpec outbound() {
         return MessageChannels.direct();
     }
 
     @Bean
-    IntegrationFlow outboundAmqpIntegrationFlow(@Qualifier("outbound") MessageChannel outbound, @Qualifier("inbound") MessageChannel inbound, ObjectMapper objectMapper, AmqpTemplate amqpTemplate) {
+    IntegrationFlow outboundAmqpIntegrationFlow(MessageChannel outbound, MessageChannel inbound, ObjectMapper objectMapper, AmqpTemplate amqpTemplate) {
         return IntegrationFlow
                 .from(outbound)
                 .transform((GenericTransformer<String, Map<String, String>>) source -> Map.of("request", source))
